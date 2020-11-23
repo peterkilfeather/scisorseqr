@@ -1,3 +1,4 @@
+#convert FASTA sequence to reverse complement
 function comp(x){
     x=toupper(x) ;
     if(x=="A"){return("T");}
@@ -14,7 +15,10 @@ function revcomp(x){
 
 {seq=$2;}
 
-
+#read gff file
+#check that column 1 does not equal just "chr"
+#create a key based on columns 1, 4, 5 and 7
+#if 
 END{
     while(getline<file>0){
 	if($1!=chr){continue;} 
