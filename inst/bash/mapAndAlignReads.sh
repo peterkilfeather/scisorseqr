@@ -62,6 +62,9 @@ mappingWellMappedBAM=$tmpdir1"/mapping.bestperRead.bam";
 
 echo "+++++++++++++++ 2c1 finding best hits"
 samtools view -H $mappingBAM > $mappingWellMappedSAM
+#apply process described in https://static-content.springer.com/esm/art%3A10.1038%2Fnbt.4259/MediaObjects/41587_2018_BFnbt4259_MOESM44_ESM.pdf
+#awk to remove * aligning reads
+#awk TO FILL OUT
 for i in `cat $mappingBAMGuide`; do samtools view $i | awk '$3!="*"' | awk -v file=$i \
 'BEGIN{u1=0;u2=0;d1=0;d2=0;}{n[$1]++; v[$1"\t"n[$1]]=$5; line[$1"\t"n[$1]]=$0;}END \
 {for(k in n){if(n[k]==1){if(v[k"\t1"]>=20){print line[k"\t1"]; \
@@ -84,10 +87,13 @@ echo "+++++++++++++++++++++ 2d. removing ribosomal RNA hits";
 if [ ! -f $outdir"/mapping.bestperRead.noRiboRNA.bam" ]
 then
 echo "++++++++++++++++++ 2d1. finding ribosomal RNA hits";
+#awk for rRNA annotations and prepare a ribosomal bed file with bedtools intersect
 zcat $annoGZ | awk '$3=="exon" && ($14~/rRNA/ || $14~/rRNA_pseudogene/ || $14~/Mt_rRNA/)' > $tmpdir1"/tmp.AnnoRibo.gff";
 bedtools intersect -abam $mappingWellMappedBAM -b $tmpdir1"/tmp.AnnoRibo.gff" -split -bed > $tmpdir1"/reads2Remove.bed";
 
 echo "++++++++++++++++++ 2d2. removing ribosomal RNA hits";
+#read bam file and reads2remove.bed and remove line if matches based on column 4/1
+#export as bam
 samtools view -h $mappingWellMappedBAM | awk -v hits=$tmpdir1"/reads2Remove.bed" \
 'BEGIN{comm="cat "hits; while(comm|getline){rm[$4]=1;}}{if($1 in rm){next;} print;}' \
 | samtools view -b -S - > $outdir"/mapping.bestperRead.noRiboRNA.bam";
@@ -102,6 +108,19 @@ echo "+++++++++++++++++++++ 3a. checking consensus";
 if [ ! -f $outdir"/mapping.bestperRead.noRiboRNA.introns.gff.gz" ]
 then
 echo "++++++++++++++++++ 3a1. getting introns and exons in gff format";
+#convert a bam into a bed file and if a read has a split alignment, represent 
+#each exon of alignment as a separate bed feature. 
+#start awk with tab output field sep
+#if column 4 has already been seen, split column 11 into a variable called "blockLen"
+#and split column 12 into a variable called "offset"
+#n and m equal the length of blockLen and offset respectively
+#if blockLen and offset are not equal (in length?) ERROR and exit
+#if n < 2, then move on: There is no alignment split
+#set the end of the exon to the start coordinate + the first blockLen value
+#count up from i=2, but is less than or equal to the number of blockLen entries
+#set the start of the exon to the start coordinate + offset + 1 because of bed format
+#print our output of introns, by printing exEnd first (+1 for start of intron) and exStart second (-1 for intron end)
+#set the exEnd to the end of the first exon for the next intron to be printed
 time bedtools bamtobed -i $outdir"/mapping.bestperRead.noRiboRNA.bam" -bed12 | awk 'BEGIN{OFS="\t";}\
 {seen[$4]++; n=split($11,blockLen,","); m=split($12,offset,","); \
 if(m!=n){print "ERROR after bamtobed:m="m"!=n="n > "/dev/stderr";\
@@ -109,7 +128,7 @@ exit(0);} if(n<2){next;} exEnd=$2+blockLen[1];  for(i=2;i<=n;i++){ exStart=$2+of
 print $1,"hg19","intron",exEnd+1,exStart-1,".",$6,".","transcript_id_with_chr="$4".path"seen[$4]"@"$1; \
 exEnd=exStart+blockLen[i]-1;}}' > $outdir"/mapping.bestperRead.noRiboRNA.introns.gff"
 
-
+#similar to above, except using normal exon reporting
 time bedtools bamtobed -i $outdir"/mapping.bestperRead.noRiboRNA.bam" -bed12 | awk 'BEGIN{OFS="\t";}\
 {seen[$4]++; n=split($11,blockLen,","); m=split($12,offset,","); \
 if(m!=n){print "ERROR after bamtobed:m="m"!=n="n > "/dev/stderr"; exit(0);} \
@@ -126,6 +145,16 @@ echo "++++++++++++++++++ 3a2. getting dinucleotides at intron borders";
 echo "++++++++++++++++++ 3a2.a. preparing commands for parallel execution";
 if [ ! -f $outdir"/parallel.comp.anno.guide.3.siteSeq" ]
 then
+
+#for each chromosome in the introns gff file,
+#print line if starts with chr, otherwise prepend chr and print line
+#output seqfile is the chromosome fasta gzipped
+#calls a f2tFunc.sh script to get fasta sequence names
+#and a v0.1.getSpliceSiteSequence.awk script to get consensus splice sequences
+#output to a site_sequence file specific to each chromosome
+#echo the str command to a parallel document
+#define collectCommand and rmCommand
+#shuffle parallel commands
 
 collectCommand="cat "
 rmCommand="rm "
@@ -146,9 +175,11 @@ cat $outdir"/parallel.comp.anno.guide.3.siteSeq" | shuf > $outdir"/tmp";
 mv $outdir"/tmp" $outdir"/parallel.comp.anno.guide.3.siteSeq"
 
 echo "+++++++++++++++ 3a2b execution ";
+#execute commands in parallel
 time python $pyScriptDir/v0.2.executeInParallel.py --commandFile $outdir"/parallel.comp.anno.guide.3.siteSeq" --n $numThreads
 
 echo "+++++++++++++++ 3a2c collecting results and removing temporary files";
+#collate sequences
 echo $collectCommand;
 echo $rmCommand;
 `$collectCommand > $outdir"/mapping.bestperRead.RNAdirection.introns.type.gff"`;
@@ -166,7 +197,12 @@ echo "++++++++++++++++++ 3b1. getting mapping.bestperRead.noRiboRNA.bam in gff f
 
 if [ ! -f $outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.transcriptWise.genes.gz" ]
 then
-
+#use exon gff,
+#consensus intron site sequence gff
+#set output consensus introns gff filename
+#set unclassified output name
+#run v1.0b.correct.strand.bySpliceSiteConsensus.awk script
+#to generate consensus split mapped molecules
 time awk -v bestMatchFile=$outdir"/mapping.bestperRead.noRiboRNA.gff" \
 -v intronTypeFile=$outdir"/mapping.bestperRead.RNAdirection.introns.type.gff.gz" \
 -v outputCorrectFile=$outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.gff" \
