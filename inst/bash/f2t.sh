@@ -6,6 +6,7 @@
 #print the name of the fasta sequence without ">"
 #if on line 1, do the same
 #otherwise if does not start with ">" print whole line (FASTA sequence)
+#NB. outputs fasta sequence all on one line
 function FastaToTbl()
 {
         awk '{
