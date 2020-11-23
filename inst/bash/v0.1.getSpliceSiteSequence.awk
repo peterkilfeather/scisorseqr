@@ -13,12 +13,28 @@ function revcomp(x){
     return(y);
 }
 
+#seq is everything after the first column
 {seq=$2;}
 
-#read gff file
-#check that column 1 does not equal just "chr"
-#create a key based on columns 1, 4, 5 and 7
-#if 
+#read formatted gff
+#check that column 1 equals the variable "chr"
+#if it does not, move to next line
+#create a key based on the gff columns 1, 4, 5 and 7
+#if the key is in "c", go to next line (consensus already found?)
+#print the line with site_consensus equal to the c[key] entry and
+#site_consensus_ext equal to the c2[key] entry
+#define compare as the fasta sequence from gff column 4, two nucleotides
+#to column 5 minus 1, two nucleotides
+#define compare2 as column 4 minus 5, for 12 nucleotides
+#and column 5 minus 1 minus 5, for 12 nucleotides (wider)
+#with "NNNNN" inserted between
+#if reverse stranded, create reverse complement of
+#compare
+#print whole line of gff with site_consensus as compare
+#and site consensus ext as compare2
+#set c[key] to compare
+#set c2[key] to compare2
+#go to next line
 END{
     while(getline<file>0){
 	if($1!=chr){continue;} 
