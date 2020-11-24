@@ -176,7 +176,8 @@ mv $outdir"/tmp" $outdir"/parallel.comp.anno.guide.3.siteSeq"
 
 echo "+++++++++++++++ 3a2b execution ";
 #execute commands in parallel
-time python $pyScriptDir/v0.2.executeInParallel.py --commandFile $outdir"/parallel.comp.anno.guide.3.siteSeq" --n $numThreads
+#changed to GNU parallel: Couldn't get the python script to work
+time cat $outdir"/parallel.comp.anno.guide.3.siteSeq" | parallel
 
 echo "+++++++++++++++ 3a2c collecting results and removing temporary files";
 #collate sequences
