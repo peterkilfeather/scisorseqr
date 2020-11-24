@@ -108,8 +108,8 @@ echo "+++++++++++++++++++++ 3a. checking consensus";
 if [ ! -f $outdir"/mapping.bestperRead.noRiboRNA.introns.gff.gz" ]
 then
 echo "++++++++++++++++++ 3a1. getting introns and exons in gff format";
-#convert a bam into a bed file and if a read has a split alignment, represent 
-#each exon of alignment as a separate bed feature. 
+#convert a bam into a bed file and if a read has a split alignment, represent
+#each exon of alignment as a separate bed feature.
 #start awk with tab output field sep
 #if column 4 has already been seen, split column 11 into a variable called "blockLen"
 #and split column 12 into a variable called "offset"
@@ -212,6 +212,11 @@ time awk -v bestMatchFile=$outdir"/mapping.bestperRead.noRiboRNA.gff" \
 
 time gzip $outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.gff"
 
+#remove path and \" from read_id column
+#make a list of read_ids
+# add all PG, HD, SQ lines to "use" (status = 1)
+# then filter bam file for read_id being present in use
+# export as bam
 samtools view -h $outdir"/mapping.bestperRead.noRiboRNA.bam" | \
 awk -v CSMM=$outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.gff.gz" \
 'BEGIN{comm="zcat "CSMM; while(comm|getline){split($10,a,/(\.path|\")/); \
