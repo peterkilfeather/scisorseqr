@@ -47,20 +47,31 @@ BEGIN{
     comm="cat "intronGFF;
     while(comm | getline){	
 
+#get read id and set read2Gene value for
+#read id to ""
 	split($9,a,"transcript_id_with_chr=");
 	split(a[2],b,"@");
 	readID=b[1];	
 	read2Gene[readID]="";
 
+#l1 is start position minus 1
+#key1 is chromosome, start pos, strand
 	l1=$4-1;
 	key1=$1"_"l1"_"$7;
 	
+#if this is the first time the key1 is encountered
+#set endSite2Read[key1] to the read id
+#otherwise append the new read id to endSite2Read[key1]
+
 	if(key1 in endSite2Read){endSite2Read[key1]=endSite2Read[key1]";"readID}
 	else{endSite2Read[key1]=readID;}
        
+#l2 is stop position plus 1
+#key2 is chromosome, stop pos, strand
 	l2=$5+1;
 	key2=$1"_"l2"_"$7;
 	
+#as above (create list of read_ids matching key2
 	if(key2 in startSite2Read){startSite2Read[key2]=startSite2Read[key2]";"readID}
 	else{startSite2Read[key2]=readID;}
 
