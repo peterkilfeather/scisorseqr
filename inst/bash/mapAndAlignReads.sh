@@ -226,6 +226,12 @@ $outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.bam";
 
 echo "++++++++++++++++++ 3b3. getting introns";
 
+# This replaces the strand sign with the strandsign of the consensusIntrons gff
+# strip \" from read_id
+# store the strand sign (+/-) of each read_id
+# in the "introns" gff, extract the read_id
+# if the read_id is in use,
+# print the introns.gff with the consensusIntrons strand sign and any remaining fields
 time zcat $outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.gff.gz" | \
 awk -v introns=$outdir"/mapping.bestperRead.noRiboRNA.introns.gff" \
 '{split($10,a,"\""); use[a[2]]=$7;}END{comm="cat "introns; \
