@@ -85,7 +85,7 @@ BEGIN{
     comm="cat "sortedAnno;
     while(comm | getline){
 #if column 3 does not equal "exon", skip this section
-#if previous column4 and current column4 are less than previous column 4, error and exit
+#if lastColumn4 exists and current column4 is less than previous column 4, error and exit
 	if(feature && $3!=feature){continue;}
         if(lastColumn4 && $4<lastColumn4){
             print "ERROR:lastColumn4="lastColumn4"; and $0="$0 > "/dv/stderr";
@@ -96,20 +96,22 @@ BEGIN{
 	    print "ERROR: cannot deal with strand="$7 > "/dev/stderr";
 	    exit(0);
 	}
-#if column 12 is in strand and strand[$12] does not equal column 7
+#if the transcript id in column 12 is in strand and strand[$12] does not equal column 7
+# call an error because the strands do not match
 	if($transIdColumn in strand && strand[$transIdColumn]!=$7){
 	    print "ERROR: strands do no match:"strand[$transIdColumn]"!="$7 > "/dev/stderr";
 	    exit(0);
 	}
-# if column 12 is in chr and chr[$12] does not equal column 1, error and exit
+# if the transcript id in column 12 is in chr and chr[$12] does not equal column 1, error and exit
 	if($transIdColumn in chr && chr[$transIdColumn]!=$1){
 	    print "ERROR: chroms do no match:"chr[$transIdColumn]"!="$1 > "/dev/stderr";
 	    exit(0);
 	}
-# split column 10 (gene id) into variable G, removing \"
+# split column 10 (gene id) into variable G, removing "
 # gene[current transcript id] equals the gene name
 # add 1 to the count for the current transcript id
 # exon[transcript id + count for transcript id] = chr_start_stop_strand
+# ^ in other words each exon is uniquely identified by the chr_start_stop_strand
 # strand[transcript id] = strand column 7
 # chr[transcript id] = chr column 1
 # lastColumn4 becomes current column4 (start position)
@@ -123,16 +125,23 @@ BEGIN{
     }
     
     print "## C. going over all annotated transcripts: " > "/dev/stderr";
+# for every transcript id listed in the strand variable
     for(tr in strand){
-    	
-	# going over all exons of this transcript
+# iterate over every instance of a transcript
+# going over all exons of this transcript
 	for(i=1;i<=n[tr];i++){
-	    
+# split each exon for a transcript into "a", separating _
+# keyStart becomes chrom_start_strand
+# keyStop becomes chrom_stop_strand
 	    split(exon[tr"\t"i],a,"_");
 	    keyStart=a[1]"_"a[2]"_"a[4];
 	    keyEnd=a[1]"_"a[3]"_"a[4];
 	    
-
+# if keyEnd is in endSite2Read and this is not the last exon of the transcript...
+# and the transcript's gene "\t" keyEnd "\t" "end" is not in geneSpliceSitePair
+# m becomes length of the split of endSite2Read for this keyEnd, splitting based on ";", into b
+# for every part of b
+# read2Gene
 	    if(keyEnd in endSite2Read && i<n[tr] && !(gene[tr]"\t"keyEnd"\t""end" in geneSpliceSitePair) ){				
 		m=split(endSite2Read[keyEnd],b,";");
 		for(j=1;j<=m;j++){
@@ -143,6 +152,10 @@ BEGIN{
 	    if(i<n[tr]){
 		geneSpliceSitePair[gene[tr]"\t"keyEnd"\t""end"]=1;
 	    }
+# if keyStart is in startSite2Read and...
+# if the number of exons is greater than 1 and...
+# if the gene_keyStart_start is not in geneSpliceSitePair
+
 	    if(keyStart in startSite2Read && i>1 && !(gene[tr]"\t"keyStart"\t""start" in geneSpliceSitePair) ){
 		m=split(startSite2Read[keyStart],b,";");
 		for(j=1;j<=m;j++){
@@ -150,6 +163,8 @@ BEGIN{
 		}
 		#sitesStart[keyStart"\t"gene[tr]]=1;
 	    }
+# if the number of exons is greater than 1
+# geneSpliceSitePair for this gene at this keyStart becomes 1
 	    if(i>1){
 		geneSpliceSitePair[gene[tr]"\t"keyStart"\t""start"]=1;		
 	    }
