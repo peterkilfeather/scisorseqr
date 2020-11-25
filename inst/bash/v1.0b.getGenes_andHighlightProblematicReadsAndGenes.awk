@@ -84,24 +84,35 @@ BEGIN{
     print "## B. parsing annotation: " > "/dev/stderr"
     comm="cat "sortedAnno;
     while(comm | getline){
-
+#if column 3 does not equal "exon", skip this section
+#if previous column4 and current column4 are less than previous column 4, error and exit
 	if(feature && $3!=feature){continue;}
         if(lastColumn4 && $4<lastColumn4){
             print "ERROR:lastColumn4="lastColumn4"; and $0="$0 > "/dv/stderr";
             exit(0);
         }
+#if column 7 does not equal + or -, error and exit
 	if($7!="+" && $7!="-"){
 	    print "ERROR: cannot deal with strand="$7 > "/dev/stderr";
 	    exit(0);
 	}
+#if column 12 is in strand and strand[$12] does not equal column 7
 	if($transIdColumn in strand && strand[$transIdColumn]!=$7){
 	    print "ERROR: strands do no match:"strand[$transIdColumn]"!="$7 > "/dev/stderr";
 	    exit(0);
 	}
+# if column 12 is in chr and chr[$12] does not equal column 1, error and exit
 	if($transIdColumn in chr && chr[$transIdColumn]!=$1){
 	    print "ERROR: chroms do no match:"chr[$transIdColumn]"!="$1 > "/dev/stderr";
 	    exit(0);
 	}
+# split column 10 (gene id) into variable G, removing \"
+# gene[current transcript id] equals the gene name
+# add 1 to the count for the current transcript id
+# exon[transcript id + count for transcript id] = chr_start_stop_strand
+# strand[transcript id] = strand column 7
+# chr[transcript id] = chr column 1
+# lastColumn4 becomes current column4 (start position)
 	split($geneIdColumn,G,"\"");
 	gene[$transIdColumn]=G[2];
 	n[$transIdColumn]++;
