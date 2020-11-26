@@ -54,20 +54,21 @@ BEGIN{
 	readID=b[1];	
 	read2Gene[readID]="";
 
-#l1 is start position minus 1
-#key1 is chromosome, start pos, strand
+#l1 is start position (of the intron!) minus 1
+#key1 is chromosome, start pos intron, strand
 	l1=$4-1;
 	key1=$1"_"l1"_"$7;
 	
 #if this is the first time the key1 is encountered
 #set endSite2Read[key1] to the read id
 #otherwise append the new read id to endSite2Read[key1]
+# so "endSite" refers to the end of exon?
 
 	if(key1 in endSite2Read){endSite2Read[key1]=endSite2Read[key1]";"readID}
 	else{endSite2Read[key1]=readID;}
        
-#l2 is stop position plus 1
-#key2 is chromosome, stop pos, strand
+#l2 is stop position of intron(!) plus 1
+#key2 is chromosome, stop pos intron, strand
 	l2=$5+1;
 	key2=$1"_"l2"_"$7;
 	
@@ -140,8 +141,9 @@ BEGIN{
 # if keyEnd is in endSite2Read and this is not the last exon of the transcript...
 # and the transcript's gene "\t" keyEnd "\t" "end" is not in geneSpliceSitePair
 # m becomes length of the split of endSite2Read for this keyEnd, splitting based on ";", into b
-# for every part of b
-# read2Gene
+# endSite2Read was generated in part A: It contains a ";" separated list of read_ids for each key.
+# for every part of b (for each read id)
+# read2Gene[read_id] = gene[read_id], appending any new gene id
 	    if(keyEnd in endSite2Read && i<n[tr] && !(gene[tr]"\t"keyEnd"\t""end" in geneSpliceSitePair) ){				
 		m=split(endSite2Read[keyEnd],b,";");
 		for(j=1;j<=m;j++){
@@ -163,7 +165,7 @@ BEGIN{
 		}
 		#sitesStart[keyStart"\t"gene[tr]]=1;
 	    }
-# if the number of exons is greater than 1
+# if this is the second or greater exon
 # geneSpliceSitePair for this gene at this keyStart becomes 1
 	    if(i>1){
 		geneSpliceSitePair[gene[tr]"\t"keyStart"\t""start"]=1;		
@@ -172,6 +174,14 @@ BEGIN{
 	}	    
     }
     print "## D. counting the number of splice sites per gene:" > "/dev/stderr";
+#for every geneSpliceSitePair entry
+#split the gene id, keyEnd and "end" based on "\t"
+#if the length of the split does not equal 3, error and exit
+#add 1 to the count of spliceSiteNumber for each unique gene id
+#if the keyEnd and strand are not in spliceSite2Gene...
+#add an entry for the keyEnd and strand and set the value to the gene id
+#if the keyEnd and strand are in spliceSite2Gene...
+#add the gene id to problematicGene and output its name to the problematicGeneOutFile
     for(k in geneSpliceSitePair){
 	x=split(k,a,"\t");
 	if(x!=3){
@@ -191,6 +201,28 @@ BEGIN{
     
 
     print "## E. checking whether a read has equal numbers of splice sites with multiple genes: " > "/dev/stderr"    
+#for every read in read2Gene
+# delete all entries in h
+# split the value of read2Gene[read id] based on ";"
+# so separate each gene_id associated with a read (there should only be 1?)
+# add 1 to the h[gene] for the number of second, third etc genes
+# g = "none"
+# v = -1
+# set problemRead and problemGene to "fine" as default
+# for every gene in h...
+# if the count of that genes is greater than -1
+# problemRead stays as fineRead
+# if k is in problematicGene, 
+# problematicGene is set as "problematicGene"
+# otherwise keep problematicGene as "fineGene"
+# set g to the current gene
+# set v to the count for the current gene
+# move onto the next gene
+# perhaps variables are -1 by default?
+# because then we check whether the count for a gene id equals -1
+#
+#
+# finally prints out read, gene, whether it is a problemRead and whether it is a problemGene
     for(r in read2Gene){
 	#if(r!="m121212_085615_00126_c100418772550000001523036412191280_s1_p0/47403/ccs.path1"){
 	#    continue;
