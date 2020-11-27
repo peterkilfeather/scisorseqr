@@ -240,7 +240,9 @@ if(a[2] in use){s=$1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"use[a[2]]; \
 for(i=8;i<=NF;i++){s=s"\t"$i;} print s;}}}' > \
 $outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.introns.gff";
 
-
+#There is a bug here requiring each chromosome to be split (from mapping.intron.gff file and sortedAnno)
+#And each split mapping file to be split into 100,000 rows at a time and processed
+#the splitter_script.sh will be uploaded and called here instead of these lines below
 echo "++++++++++++++++++ 3b4. getting genes";
 time awk -v sortedAnno=$tmpdir1"/sortedAnno" -v \
 intronGFF=$outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.introns.gff" \
@@ -274,6 +276,7 @@ echo "++++++++++++++++++++++ 5b. RNAseq";
 time zcat $outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.introns.gff.gz" | \
 sort -k1,1 -gk4,4 | gzip -c > $tmpdir1"/rnaSeq.introns.gff.gz"
 
+# prints the exons covered by each read?
 time zcat $outdir"/mapping.bestperRead.RNAdirection.withConsensIntrons.gff.gz" | \
 awk '{exon=$1"_"$4"_"$5"_"$7; if(!a[$10]) {a[$10]=$10"\t;%;"exon} else {a[$10]=a[$10]";%;"exon} }END \
 {for(i in a) {print a[i]}}' | \
