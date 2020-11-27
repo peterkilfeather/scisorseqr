@@ -104,6 +104,20 @@ BEGIN{
 	  }    
     }
 
+#parses the tmp/rnaseq.introns.gff file
+#counts the number of chromosomes and strands
+#transcript ID is in column 9
+#elementID is the chr_start_stop_strand ID
+#the elementsPred for all elementIDs is 1 by default
+#lastBorderPred stores, for each transcript ID the final stop position of the transcriptID
+#if this is the first time the transcriptID has been looked at...
+#the elementNumberPred for the transcript ID is 1
+#the transcript2ElementsPred gains an entry for the "transcriptID elementnumberPred[transcriptID](1 in this case) equal to the elementID (chr_start_stop_strand)
+# Now, if the transcriptID is already in lastBorderPred...
+# check that the start position is currently greater than the lastBorderPred of the transcriptID, otherwise error
+# update the lastBorderPred to the stop column of the annotation
+# add 1 to the elementNumberPred for the transcriptID, so it now becomes 2, 3, 4, etc...
+# add an entry to transcript2ElementsPred for this transcript ID and elementNumberPred, equal to the new elementID (chr_start_stop_strand)
     print "## 2. prediction: assuming non-zipped, genomically ordered gff in the format Nicholas provided" > "/dev/stderr";
     print "## 2a. parsing"
     count=0;
@@ -137,6 +151,16 @@ BEGIN{
 	    transcript2ElementsPred[transcriptID"\t"elementNumberPred[transcriptID]]=elementID;	   	    
 	}	 	           
     }
+    
+# for each transcript stored in lastBorderPred...
+# the stretch starts as ""
+# for each elementNumberPred (1, 2, 3....) for that transcript...
+# the stretch becomes the elementID from transcript2ElementsPred of that transcript ID and elementNumberPred (ie. chr_start_stop_strand)
+# n becomes the length of splitting "stretch" into its individual stretches
+# deduct 1 from n
+# if the stretch is found in annotatedStretch...
+# print out that it is known
+# otherwise print out that it is novel
     print "## 2b. are the RNAseq stretches annotated ?" > "/dev/stderr";
     # considering all transcripts  
     for(tr in lastBorderPred){	
