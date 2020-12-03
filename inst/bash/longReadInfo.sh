@@ -34,6 +34,17 @@ checkForFile $GeneGZ
 checkForFile $StretchesGZ
 checkForFile $exonStretches
 
+# read the reads to genes file
+# retain reads that are "fineRead" and "fineGene"
+# create a read2Gene called gene
+# read the barcode output file
+# split its first column into rN
+# if rN[2].path1 is in gene
+# print the whole line of barcode output...
+# plus the read entry of gene[] and 
+# inverse match "@;@" and output to
+# Mapped_Barcoded
+
 awk -v gGZ=$GeneGZ -v bcO=$BarcodeOutput 'BEGIN{comm="zcat <"gGZ; while(comm|getline) \
 {if($2!="none" && $3=="fineRead" && $4=="fineGene") {gene[$1]=$2;}} \
 comm="cat "bcO; while(comm|getline) {split($1,rN,"@"); {if(rN[2]".path1" in gene) \
